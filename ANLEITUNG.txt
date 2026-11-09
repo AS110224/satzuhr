@@ -1,0 +1,75 @@
+SATZUHR – als App aufs iPhone
+=============================
+
+Was in diesem Ordner liegt
+--------------------------
+index.html             die App selbst
+manifest.webmanifest   Name, Icon und Vollbild-Einstellung
+sw.js                  macht die App offline nutzbar
+icons/                 App-Icons in allen nötigen Größen
+
+Alle vier Dinge gehören zusammen in denselben Ordner. Die Datei
+index.html muss direkt darin liegen, nicht in einem Unterordner.
+
+
+Schritt 1: Ordner ins Netz stellen (einmalig, kostenlos)
+--------------------------------------------------------
+Damit das iPhone die Satzuhr als App installieren kann, braucht sie
+eine eigene Internetadresse. Zwei kostenlose Wege:
+
+A) GitHub Pages
+   1. Konto auf github.com anlegen (kostenlos).
+   2. Neues Repository anlegen, Name z. B. "satzuhr", Sichtbarkeit
+      "Public", Haken bei "Add a README file".
+   3. Auf "Add file" > "Upload files" klicken und den INHALT dieses
+      Ordners hineinziehen (index.html, manifest.webmanifest, sw.js
+      und den Ordner icons). Unten auf "Commit changes".
+   4. Oben auf "Settings" > links "Pages" > unter "Branch" den Zweig
+      "main" und den Ordner "/ (root)" wählen > "Save".
+   5. Nach ein bis zwei Minuten steht dort die Adresse, etwa
+      https://DEINNAME.github.io/satzuhr/
+
+B) Netlify
+   1. Konto auf netlify.com anlegen (kostenlos).
+   2. Auf app.netlify.com/drop diesen Ordner ins Fenster ziehen.
+   3. Die Adresse erscheint sofort, etwa
+      https://zufallsname.netlify.app/
+
+Wichtig: Beide liefern die Seite über https aus. Das ist Pflicht,
+sonst funktioniert der Offline-Betrieb nicht.
+
+
+Schritt 2: Auf dem iPhone installieren
+--------------------------------------
+1. Die Adresse in SAFARI öffnen (nicht Chrome – nur Safari darf
+   auf dem iPhone Web-Apps installieren).
+2. Unten auf das Teilen-Symbol (Quadrat mit Pfeil nach oben).
+3. "Zum Home-Bildschirm" wählen, Name "Satzuhr" bestätigen.
+4. Die App einmal vom Home-Bildschirm starten, solange noch
+   Internet da ist. Danach läuft sie auch im Flugmodus.
+
+Erkennungszeichen, dass es geklappt hat: Die App startet ohne
+Adressleiste, mit dem orangen Stoppuhr-Icon.
+
+
+Ton auf dem iPhone
+------------------
+Der stumm-Schalter an der linken Gehäuseseite muss AUS sein, sonst
+hört man weder Ansagen noch Pieptöne. Lautstärke am besten während
+des Trainings einmal mit dem Start-Countdown prüfen.
+
+Wenn du während des Trainings in eine andere App wechselst oder den
+Bildschirm sperrst, pausiert iOS die Sprachausgabe. Die Zeit läuft
+richtig weiter, weil sie an der Uhr hängt – nur die Ansagen fehlen,
+bis die App wieder im Vordergrund ist.
+
+
+Später etwas ändern
+-------------------
+Geänderte index.html am selben Ort erneut hochladen, und in sw.js
+die Zeile
+
+   var CACHE = "satzuhr-v1";
+
+auf "satzuhr-v2" ändern (danach v3, v4 ...). Ohne diese Änderung
+zeigt das iPhone weiter die alte, gespeicherte Fassung.

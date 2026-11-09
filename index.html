@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Satzuhr</title>
+<meta name="description" content="Intervalltimer für Zirkeltraining: eigene Übungen, Sätze, Pausen und deutsche Sprachansagen.">
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#eef0f3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0f12" media="(prefers-color-scheme: dark)">
+
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Satzuhr">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: eine Spalte, max 520px – Einstellungen als gestapelte Karten, Laufansicht als Vollbild-Anzeige */
+:root{
+  --bg:#eef0f3; --surface:#ffffff; --surface-2:#f6f7f9; --line:#d9dde3;
+  --fg:#14171c; --muted:#5d6572;
+  --accent:#e4572e;
+  --work:#e4572e; --rest:#128f86; --setrest:#4a5bd4; --prep:#6b7280;
+  --shadow:0 1px 2px rgba(20,23,28,.06), 0 8px 24px rgba(20,23,28,.06);
+  --display:"Oswald","Haettenschweiler","Arial Narrow",sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  color-scheme:light;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d0f12; --surface:#171a1f; --surface-2:#1e222a; --line:#2b3039;
+    --fg:#f0f2f5; --muted:#9aa2b0;
+    --accent:#ff6b3d;
+    --work:#ff6b3d; --rest:#2ec9bd; --setrest:#7a89ff; --prep:#7d8695;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d0f12; --surface:#171a1f; --surface-2:#1e222a; --line:#2b3039;
+  --fg:#f0f2f5; --muted:#9aa2b0;
+  --accent:#ff6b3d;
+  --work:#ff6b3d; --rest:#2ec9bd; --setrest:#7a89ff; --prep:#7d8695;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--bg); color:var(--fg);
+  font-family:var(--body); font-size:16px; line-height:1.45;
+  padding-left:max(16px, env(safe-area-inset-left,0px));
+  padding-right:max(16px, env(safe-area-inset-right,0px));
+  padding-block:0;
+  overscroll-behavior-y:contain;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+img{max-width:100%}
+[hidden]{display:none !important}
+button, .toggle, .phase-tag, .chip, .ex-num{-webkit-user-select:none; user-select:none}
+.wrap{max-width:520px; margin-inline:auto; padding-block:20px 8px}
+h1{font-family:var(--display); font-weight:600; font-size:2.1rem; letter-spacing:.01em; margin:0; line-height:1}
+.tagline{color:var(--muted); font-size:.92rem; margin:6px 0 0}
+.head{display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:18px}
+.head .mark{font-family:var(--display); font-size:.78rem; letter-spacing:.18em; text-transform:uppercase; color:var(--accent); font-weight:500}
+
+.card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); margin-bottom:14px}
+.card > h2{
+  font-family:var(--display); font-weight:500; font-size:.8rem; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--muted); margin:0 0 12px;
+}
+
+/* Übungsliste */
+.ex-list{display:flex; flex-direction:column; gap:8px}
+.ex-row{display:grid; grid-template-columns:28px 1fr 36px; align-items:center; gap:8px}
+.ex-num{font-family:var(--display); font-size:1.05rem; color:var(--muted); text-align:center; font-variant-numeric:tabular-nums}
+.ex-row input{
+  width:100%; min-width:0; font:inherit; color:var(--fg); background:var(--surface-2);
+  border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+}
+.ex-row input:focus-visible, .st-val:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+.icon-btn{
+  width:36px; height:36px; display:grid; place-items:center; border-radius:10px;
+  border:1px solid transparent; background:transparent; color:var(--muted);
+  font-size:1.25rem; line-height:1; cursor:pointer; font-family:var(--body);
+}
+.icon-btn:hover{background:var(--surface-2); color:var(--fg)}
+.add-btn{
+  margin-top:10px; width:100%; padding:10px; border-radius:10px; cursor:pointer;
+  border:1px dashed var(--line); background:transparent; color:var(--muted);
+  font:inherit; font-weight:500;
+}
+.add-btn:hover{border-color:var(--accent); color:var(--accent)}
+
+/* Zeiten */
+.grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.stepper{background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:10px}
+.stepper.wide{grid-column:1 / -1}
+.st-label{font-size:.8rem; color:var(--muted); font-weight:500; margin-bottom:6px}
+.st-row{display:grid; grid-template-columns:40px 1fr 40px; align-items:center; gap:6px}
+.st-btn{
+  width:40px; height:40px; border-radius:999px; border:1px solid var(--line);
+  background:var(--surface); color:var(--fg); font-size:1.3rem; line-height:1; cursor:pointer;
+  display:grid; place-items:center; font-family:var(--body);
+}
+.st-btn:hover{border-color:var(--accent); color:var(--accent)}
+.st-btn:active{transform:scale(.94)}
+.st-val{
+  width:100%; min-width:0; text-align:center; background:transparent; border:0;
+  font-family:var(--display); font-weight:500; font-size:1.7rem; color:var(--fg);
+  font-variant-numeric:tabular-nums; padding:0; -moz-appearance:textfield;
+}
+.st-val::-webkit-outer-spin-button,.st-val::-webkit-inner-spin-button{-webkit-appearance:none; margin:0}
+.st-unit{text-align:center; font-size:.72rem; color:var(--muted); margin-top:2px; letter-spacing:.04em}
+
+/* Schalter */
+.switch{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--line)}
+.switch:last-child{border-bottom:0; padding-bottom:0}
+.switch:first-of-type{padding-top:0}
+.switch span{font-size:.95rem}
+.switch small{display:block; color:var(--muted); font-size:.78rem; line-height:1.3}
+.toggle{position:relative; flex:none; width:48px; height:28px; cursor:pointer}
+.toggle input{position:absolute; inset:0; opacity:0; margin:0; cursor:pointer}
+.toggle i{
+  position:absolute; inset:0; border-radius:999px; background:var(--line);
+  transition:background .18s ease; pointer-events:none;
+}
+.toggle i::after{
+  content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:999px;
+  background:var(--surface); box-shadow:0 1px 3px rgba(0,0,0,.25); transition:transform .18s ease;
+}
+.toggle input:checked + i{background:var(--accent)}
+.toggle input:checked + i::after{transform:translateX(20px)}
+.toggle input:focus-visible + i{outline:2px solid var(--accent); outline-offset:2px}
+
+/* Zusammenfassung + Start */
+.summary{
+  display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+  padding:0 2px 12px; color:var(--muted); font-size:.88rem;
+}
+.summary b{font-family:var(--display); font-weight:500; font-size:1.5rem; color:var(--fg); font-variant-numeric:tabular-nums}
+.start-bar{position:sticky; bottom:0; padding-block:10px 14px; background:linear-gradient(to top, var(--bg) 62%, transparent)}
+.btn{
+  width:100%; padding:16px; border-radius:12px; border:0; cursor:pointer;
+  font-family:var(--display); font-weight:500; font-size:1.25rem; letter-spacing:.08em; text-transform:uppercase;
+  background:var(--accent); color:#fff;
+}
+.btn:active{transform:translateY(1px)}
+.hint{color:var(--muted); font-size:.78rem; text-align:center; margin:0 0 20px; line-height:1.5}
+
+/* ---------- Laufansicht ---------- */
+#run{
+  min-height:calc(100vh - 28px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+  min-height:calc(100svh - 28px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+  display:flex; flex-direction:column; gap:14px; padding-block:14px;
+  --phase:var(--prep);
+}
+#run[data-phase="work"]{--phase:var(--work)}
+#run[data-phase="rest"]{--phase:var(--rest)}
+#run[data-phase="setrest"]{--phase:var(--setrest)}
+#run[data-phase="done"]{--phase:var(--rest)}
+.run-top{display:flex; align-items:center; justify-content:space-between; gap:10px}
+.chip{
+  font-family:var(--display); font-size:.82rem; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--muted); font-variant-numeric:tabular-nums;
+}
+.phase-tag{
+  font-family:var(--display); letter-spacing:.2em; text-transform:uppercase; font-size:.86rem;
+  color:var(--phase); font-weight:500;
+}
+.dial{position:relative; width:min(78vw, 300px); aspect-ratio:1; margin:4px auto 0; max-width:100%}
+.dial svg{position:absolute; inset:0; width:100%; height:100%; transform:rotate(-90deg)}
+.dial .track{fill:none; stroke:var(--line); stroke-width:7}
+.dial .bar{fill:none; stroke:var(--phase); stroke-width:7; stroke-linecap:round; transition:stroke .3s ease}
+.dial-inner{position:absolute; inset:0; display:grid; place-content:center; text-align:center; gap:2px}
+#time{
+  font-family:var(--display); font-weight:500; font-variant-numeric:tabular-nums;
+  font-size:clamp(3.6rem, 19vw, 5.6rem); line-height:.95; letter-spacing:-.01em;
+}
+#time.urgent{color:var(--phase)}
+.dial-sub{font-size:.8rem; color:var(--muted); letter-spacing:.06em}
+.now{text-align:center; padding-inline:4px}
+#nowTitle{
+  font-family:var(--display); font-weight:500; font-size:clamp(1.6rem, 7vw, 2.3rem);
+  line-height:1.1; text-wrap:balance; margin:0;
+}
+#nextUp{color:var(--muted); font-size:.92rem; margin:6px 0 0; min-height:1.4em}
+.bars{display:flex; flex-direction:column; gap:7px; margin-top:auto}
+.bar-row{display:flex; align-items:center; gap:10px; font-size:.75rem; color:var(--muted)}
+.bar-row .track{flex:1; height:6px; border-radius:999px; background:var(--line); overflow:hidden}
+.bar-row .fill{height:100%; border-radius:999px; background:var(--phase)}
+.bar-row .fill.total{background:var(--muted)}
+.bar-row b{font-variant-numeric:tabular-nums; font-weight:500; color:var(--fg)}
+.controls{display:grid; grid-template-columns:1fr 1.4fr 1fr; gap:10px; padding-bottom:6px}
+.ctl{
+  padding:15px 6px; border-radius:12px; border:1px solid var(--line); background:var(--surface);
+  color:var(--fg); font-family:var(--display); font-size:1rem; letter-spacing:.08em; text-transform:uppercase;
+  cursor:pointer; font-weight:500;
+}
+.ctl.primary{background:var(--phase); color:#fff; border-color:transparent}
+.ctl:active{transform:translateY(1px)}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<section id="setup">
+  <div class="head">
+    <div>
+      <h1>Satzuhr</h1>
+      <p class="tagline">Intervalltimer mit Ansage – Übungen, Sätze, Pausen.</p>
+    </div>
+    <div class="mark">HIIT</div>
+  </div>
+
+  <div class="card">
+    <h2>Übungen</h2>
+    <div class="ex-list" id="exList"></div>
+    <button class="add-btn" id="addEx" type="button">+ Übung hinzufügen</button>
+  </div>
+
+  <div class="card">
+    <h2>Zeiten</h2>
+    <div class="grid">
+      <div class="stepper" data-key="work">
+        <div class="st-label">Belastung</div>
+        <div class="st-row">
+          <button class="st-btn" type="button" data-delta="-1" aria-label="Belastung verkürzen">&minus;</button>
+          <input class="st-val" type="number" inputmode="numeric" data-key="work" aria-label="Belastung in Sekunden">
+          <button class="st-btn" type="button" data-delta="1" aria-label="Belastung verlängern">+</button>
+        </div>
+        <div class="st-unit">Sekunden</div>
+      </div>
+      <div class="stepper" data-key="restEx">
+        <div class="st-label">Pause zwischen Übungen</div>
+        <div class="st-row">
+          <button class="st-btn" type="button" data-delta="-1" aria-label="Übungspause verkürzen">&minus;</button>
+          <input class="st-val" type="number" inputmode="numeric" data-key="restEx" aria-label="Pause zwischen Übungen in Sekunden">
+          <button class="st-btn" type="button" data-delta="1" aria-label="Übungspause verlängern">+</button>
+        </div>
+        <div class="st-unit">Sekunden</div>
+      </div>
+      <div class="stepper" data-key="sets">
+        <div class="st-label">Sätze</div>
+        <div class="st-row">
+          <button class="st-btn" type="button" data-delta="-1" aria-label="Weniger Sätze">&minus;</button>
+          <input class="st-val" type="number" inputmode="numeric" data-key="sets" aria-label="Anzahl Sätze">
+          <button class="st-btn" type="button" data-delta="1" aria-label="Mehr Sätze">+</button>
+        </div>
+        <div class="st-unit">Durchgänge</div>
+      </div>
+      <div class="stepper" data-key="restSet">
+        <div class="st-label">Pause zwischen Sätzen</div>
+        <div class="st-row">
+          <button class="st-btn" type="button" data-delta="-1" aria-label="Satzpause verkürzen">&minus;</button>
+          <input class="st-val" type="number" inputmode="numeric" data-key="restSet" aria-label="Pause zwischen Sätzen in Sekunden">
+          <button class="st-btn" type="button" data-delta="1" aria-label="Satzpause verlängern">+</button>
+        </div>
+        <div class="st-unit">Sekunden</div>
+      </div>
+      <div class="stepper wide" data-key="prep">
+        <div class="st-label">Vorbereitung vor dem Start</div>
+        <div class="st-row">
+          <button class="st-btn" type="button" data-delta="-1" aria-label="Vorbereitung verkürzen">&minus;</button>
+          <input class="st-val" type="number" inputmode="numeric" data-key="prep" aria-label="Vorbereitung in Sekunden">
+          <button class="st-btn" type="button" data-delta="1" aria-label="Vorbereitung verlängern">+</button>
+        </div>
+        <div class="st-unit">Sekunden</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Ansagen</h2>
+    <label class="switch">
+      <span>Sprachansage<small>Nennt Übung, Pause und was als Nächstes kommt</small></span>
+      <span class="toggle"><input type="checkbox" id="opt-speak"><i></i></span>
+    </label>
+    <label class="switch">
+      <span>Halbzeit sagen<small>Bei jeder Belastung ab 14 Sekunden</small></span>
+      <span class="toggle"><input type="checkbox" id="opt-half"><i></i></span>
+    </label>
+    <label class="switch">
+      <span>Countdown 3 &ndash; 2 &ndash; 1<small>Die letzten drei Sekunden jeder Phase</small></span>
+      <span class="toggle"><input type="checkbox" id="opt-count"><i></i></span>
+    </label>
+    <label class="switch">
+      <span>Signaltöne<small>Piept bei jedem Wechsel, auch ohne Sprache</small></span>
+      <span class="toggle"><input type="checkbox" id="opt-beep"><i></i></span>
+    </label>
+  </div>
+
+  <div class="summary">
+    <span id="sumText">&nbsp;</span>
+    <b id="sumTime">00:00</b>
+  </div>
+
+  <div class="start-bar">
+    <button class="btn" id="startBtn" type="button">Training starten</button>
+  </div>
+  <p class="hint">Einstellungen bleiben auf diesem Gerät gespeichert.<br>Bildschirm bleibt während des Trainings an, wo das Handy es erlaubt.</p>
+</section>
+
+<section id="run" hidden data-phase="prep">
+  <div class="run-top">
+    <div class="phase-tag" id="phaseTag">Bereit</div>
+    <div class="chip" id="position">&nbsp;</div>
+  </div>
+
+  <div class="dial">
+    <svg viewBox="0 0 200 200" aria-hidden="true">
+      <circle class="track" cx="100" cy="100" r="92"></circle>
+      <circle class="bar" id="ring" cx="100" cy="100" r="92" stroke-dasharray="578.05" stroke-dashoffset="0"></circle>
+    </svg>
+    <div class="dial-inner">
+      <div id="time" role="timer" aria-live="off">00:00</div>
+      <div class="dial-sub" id="dialSub">&nbsp;</div>
+    </div>
+  </div>
+
+  <div class="now">
+    <h2 id="nowTitle">Bereit machen</h2>
+    <p id="nextUp">&nbsp;</p>
+  </div>
+
+  <div class="bars">
+    <div class="bar-row">
+      <span>Satz</span>
+      <span class="track"><span class="fill" id="setFill" style="width:0%"></span></span>
+      <b id="setLabel">1/1</b>
+    </div>
+    <div class="bar-row">
+      <span>Gesamt</span>
+      <span class="track"><span class="fill total" id="totalFill" style="width:0%"></span></span>
+      <b id="totalLeft">00:00</b>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="ctl" id="stopBtn" type="button">Stopp</button>
+    <button class="ctl primary" id="pauseBtn" type="button">Pause</button>
+    <button class="ctl" id="skipBtn" type="button">Weiter</button>
+  </div>
+</section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var LIMITS = {
+    work:    {min:5,  max:900, step:5},
+    restEx:  {min:0,  max:900, step:5},
+    sets:    {min:1,  max:30,  step:1},
+    restSet: {min:0,  max:900, step:10},
+    prep:    {min:0,  max:180, step:5}
+  };
+  var DEFAULTS = {
+    work:40, restEx:20, sets:3, restSet:60, prep:10,
+    names:["Kniebeugen","Liegestütze","Ausfallschritte","Unterarmstütz","Hampelmann"],
+    speak:true, half:true, count:true, beep:true
+  };
+  var KEY = "satzuhr.v1";
+
+  var S = loadSettings();
+
+  function loadSettings(){
+    var s = {};
+    for (var k in DEFAULTS) s[k] = Array.isArray(DEFAULTS[k]) ? DEFAULTS[k].slice() : DEFAULTS[k];
+    try{
+      var raw = localStorage.getItem(KEY);
+      if (raw){
+        var p = JSON.parse(raw);
+        for (var key in DEFAULTS){
+          if (!(key in p)) continue;
+          if (key === "names"){
+            if (Array.isArray(p.names) && p.names.length) s.names = p.names.slice(0, 30).map(String);
+          } else if (typeof DEFAULTS[key] === "boolean"){
+            s[key] = !!p[key];
+          } else {
+            s[key] = clamp(key, parseInt(p[key], 10));
+          }
+        }
+      }
+    }catch(e){}
+    return s;
+  }
+  function saveSettings(){
+    try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+  }
+  function clamp(key, v){
+    var L = LIMITS[key];
+    if (isNaN(v)) v = DEFAULTS[key];
+    return Math.min(L.max, Math.max(L.min, v));
+  }
+  function fmt(sec){
+    sec = Math.max(0, Math.round(sec));
+    var h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+    return (h ? h + ":" : "") + String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+  }
+  function $(id){ return document.getElementById(id); }
+
+  /* ---------- Einstellungsansicht ---------- */
+
+  var exList = $("exList");
+
+  function renderNames(){
+    exList.innerHTML = "";
+    S.names.forEach(function(name, i){
+      var row = document.createElement("div");
+      row.className = "ex-row";
+
+      var num = document.createElement("div");
+      num.className = "ex-num";
+      num.textContent = (i+1) + ".";
+
+      var inp = document.createElement("input");
+      inp.type = "text";
+      inp.value = name;
+      inp.id = "ex-" + i;
+      inp.placeholder = "Übung " + (i+1);
+      inp.setAttribute("aria-label", "Name der Übung " + (i+1));
+      inp.addEventListener("input", function(){
+        S.names[i] = inp.value;
+        saveSettings();
+      });
+
+      var del = document.createElement("button");
+      del.type = "button";
+      del.className = "icon-btn";
+      del.innerHTML = "&times;";
+      del.setAttribute("aria-label", "Übung " + (i+1) + " entfernen");
+      del.addEventListener("click", function(){
+        if (S.names.length <= 1) return;
+        S.names.splice(i, 1);
+        saveSettings(); renderNames(); updateSummary();
+      });
+
+      row.appendChild(num); row.appendChild(inp); row.appendChild(del);
+      exList.appendChild(row);
+    });
+  }
+
+  $("addEx").addEventListener("click", function(){
+    if (S.names.length >= 30) return;
+    S.names.push("Übung " + (S.names.length + 1));
+    saveSettings(); renderNames(); updateSummary();
+    var last = exList.querySelector(".ex-row:last-child input");
+    if (last){ last.focus(); last.select(); }
+  });
+
+  function syncSteppers(){
+    Array.prototype.forEach.call(document.querySelectorAll(".st-val"), function(inp){
+      var k = inp.dataset.key;
+      inp.value = S[k];
+      inp.min = LIMITS[k].min; inp.max = LIMITS[k].max; inp.step = LIMITS[k].step;
+    });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".st-btn"), function(btn){
+    btn.addEventListener("click", function(){
+      var k = btn.closest(".stepper").dataset.key;
+      S[k] = clamp(k, S[k] + parseInt(btn.dataset.delta,10) * LIMITS[k].step);
+      saveSettings(); syncSteppers(); updateSummary();
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".st-val"), function(inp){
+    inp.addEventListener("change", function(){
+      S[inp.dataset.key] = clamp(inp.dataset.key, parseInt(inp.value,10));
+      saveSettings(); syncSteppers(); updateSummary();
+    });
+  });
+
+  ["speak","half","count","beep"].forEach(function(k){
+    var el = $("opt-" + k);
+    el.checked = S[k];
+    el.addEventListener("change", function(){ S[k] = el.checked; saveSettings(); });
+  });
+
+  function totalSeconds(){
+    var n = S.names.length;
+    return S.prep + S.sets * (n * S.work + (n - 1) * S.restEx) + (S.sets - 1) * S.restSet;
+  }
+  function updateSummary(){
+    var n = S.names.length;
+    $("sumText").textContent = n + (n === 1 ? " Übung" : " Übungen") + " · " + S.sets +
+      (S.sets === 1 ? " Satz" : " Sätze") + " · " + (n * S.sets) + " Intervalle";
+    $("sumTime").textContent = fmt(totalSeconds());
+  }
+
+  /* ---------- Ton und Sprache ---------- */
+
+  var ac = null, voice = null;
+
+  function initAudio(){
+    try{
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!ac) ac = new AC();
+      if (ac.state === "suspended") ac.resume();
+    }catch(e){}
+  }
+  function beep(freq, dur, vol){
+    if (!S.beep || !ac) return;
+    try{
+      var o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+      o.type = "sine"; o.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(ac.destination);
+      o.start(t); o.stop(t + dur + 0.03);
+    }catch(e){}
+  }
+  function chord(freqs, dur, gap){
+    freqs.forEach(function(f, i){ setTimeout(function(){ beep(f, dur, 0.22); }, i * gap); });
+  }
+  function pickVoice(){
+    try{
+      var vs = window.speechSynthesis.getVoices() || [];
+      voice = vs.filter(function(v){ return /^de/i.test(v.lang); })[0] || null;
+    }catch(e){}
+  }
+  if ("speechSynthesis" in window){
+    pickVoice();
+    window.speechSynthesis.onvoiceschanged = pickVoice;
+  }
+  function say(text){
+    if (!S.speak || !("speechSynthesis" in window)) return;
+    try{
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = "de-DE"; u.rate = 1.05; u.pitch = 1; u.volume = 1;
+      if (voice) u.voice = voice;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+
+  /* ---------- Bildschirm wachhalten ---------- */
+
+  var wakeLock = null;
+  function keepAwake(){
+    try{
+      if (!("wakeLock" in navigator)) return;
+      navigator.wakeLock.request("screen").then(function(l){ wakeLock = l; }, function(){});
+    }catch(e){}
+  }
+  function dropAwake(){
+    try{ if (wakeLock) wakeLock.release(); }catch(e){}
+    wakeLock = null;
+  }
+  document.addEventListener("visibilitychange", function(){
+    if (document.visibilityState === "visible" && run && !run.paused) keepAwake();
+  });
+
+  /* ---------- Ablauf ---------- */
+
+  var LABEL = {prep:"Bereit", work:"Übung", rest:"Pause", setrest:"Satzpause", done:"Fertig"};
+  var CIRC = 578.05;
+  var run = null, ticker = null;
+
+  function buildPhases(){
+    var names = S.names.map(function(n, i){ return (n || "").trim() || ("Übung " + (i+1)); });
+    var p = [];
+    if (S.prep > 0) p.push({t:"prep", dur:S.prep, title:"Bereit machen", next:names[0], set:1, ex:0});
+    for (var s = 1; s <= S.sets; s++){
+      for (var i = 0; i < names.length; i++){
+        var after = (i + 1 < names.length) ? names[i+1] : (s < S.sets ? names[0] : null);
+        p.push({t:"work", dur:S.work, title:names[i], set:s, ex:i+1, next:after});
+        if (i + 1 < names.length && S.restEx > 0){
+          p.push({t:"rest", dur:S.restEx, title:"Pause", set:s, ex:i+1, next:names[i+1]});
+        }
+      }
+      if (s < S.sets && S.restSet > 0){
+        p.push({t:"setrest", dur:S.restSet, title:"Satzpause", set:s, ex:names.length, next:names[0], nextSet:s+1});
+      }
+    }
+    return p;
+  }
+
+  function startRun(){
+    initAudio();
+    var phases = buildPhases();
+    if (!phases.length) return;
+    var total = phases.reduce(function(a, b){ return a + b.dur; }, 0);
+    run = {
+      phases: phases, i: -1, total: total, done: 0,
+      endAt: 0, rest: 0, paused: false, lastSec: -1, saidHalf: false, exCount: S.names.length
+    };
+    $("setup").hidden = true;
+    $("run").hidden = false;
+    $("pauseBtn").textContent = "Pause";
+    $("skipBtn").disabled = false;
+    keepAwake();
+    nextPhase();
+    if (ticker) clearInterval(ticker);
+    ticker = setInterval(tick, 100);
+  }
+
+  function stopRun(){
+    if (ticker){ clearInterval(ticker); ticker = null; }
+    run = null;
+    dropAwake();
+    try{ window.speechSynthesis.cancel(); }catch(e){}
+    $("run").hidden = true;
+    $("setup").hidden = false;
+    window.scrollTo(0, 0);
+  }
+
+  function nextPhase(){
+    var prev = run.phases[run.i];
+    if (prev) run.done += prev.dur;
+    run.i++;
+    if (run.i >= run.phases.length){ finish(); return; }
+    var ph = run.phases[run.i];
+    run.endAt = Date.now() + ph.dur * 1000;
+    run.rest = ph.dur * 1000;
+    run.lastSec = ph.dur + 1;
+    run.saidHalf = false;
+    announce(ph);
+    paint(ph.dur, ph.dur * 1000);
+  }
+
+  function announce(ph){
+    $("run").dataset.phase = ph.t;
+    if (ph.t === "work"){
+      chord([880, 1320], 0.18, 110);
+      say(ph.title + ". Los!");
+    } else if (ph.t === "rest"){
+      beep(540, 0.3, 0.2);
+      say(ph.next ? "Pause. Als Nächstes: " + ph.next : "Pause.");
+    } else if (ph.t === "setrest"){
+      chord([520, 400], 0.3, 170);
+      say("Satzpause. Danach Satz " + ph.nextSet + ": " + ph.next + ".");
+    } else if (ph.t === "prep"){
+      beep(660, 0.2, 0.18);
+      say("Bereit machen. Erste Übung: " + ph.next + ".");
+    }
+  }
+
+  function tick(){
+    if (!run || run.paused) return;
+    var remain = run.endAt - Date.now();
+    var sec = Math.max(0, Math.ceil(remain / 1000));
+    if (sec !== run.lastSec){
+      run.lastSec = sec;
+      onSecond(sec);
+    }
+    if (remain <= 0){ nextPhase(); return; }
+    paint(sec, remain);
+  }
+
+  function onSecond(sec){
+    var ph = run.phases[run.i];
+    if (sec <= 3 && sec >= 1){
+      if (S.count) say(["", "eins", "zwei", "drei"][sec]);
+      beep(sec === 1 ? 1180 : 880, 0.1, 0.2);
+      return;
+    }
+    if (ph.t === "work" && S.half && ph.dur >= 14 && sec === Math.round(ph.dur / 2)){
+      run.saidHalf = true;
+      say("Halbzeit");
+      beep(760, 0.12, 0.14);
+    }
+  }
+
+  function paint(sec, remainMs){
+    var ph = run.phases[run.i];
+    var el = $("time");
+    el.textContent = fmt(sec);
+    el.classList.toggle("urgent", sec <= 3);
+
+    $("phaseTag").textContent = LABEL[ph.t];
+    $("nowTitle").textContent = ph.title;
+    $("nextUp").textContent = ph.next ? "Danach: " + ph.next : (ph.t === "work" ? "Letzte Übung" : "");
+
+    if (ph.t === "work" || ph.t === "rest"){
+      $("position").textContent = "Übung " + ph.ex + "/" + run.exCount + " · Satz " + ph.set + "/" + S.sets;
+      $("dialSub").textContent = ph.t === "work" ? "Belastung " + ph.dur + " s" : "Pause " + ph.dur + " s";
+    } else if (ph.t === "setrest"){
+      $("position").textContent = "Satz " + ph.set + " geschafft";
+      $("dialSub").textContent = "Satzpause " + ph.dur + " s";
+    } else {
+      $("position").textContent = run.exCount + " Übungen · " + S.sets + " Sätze";
+      $("dialSub").textContent = "Gleich geht es los";
+    }
+
+    var frac = ph.dur ? Math.max(0, Math.min(1, remainMs / (ph.dur * 1000))) : 0;
+    $("ring").style.strokeDashoffset = (CIRC * (1 - frac)).toFixed(1);
+
+    $("setLabel").textContent = ph.set + "/" + S.sets;
+    $("setFill").style.width = (100 * (ph.ex ? (ph.ex - (ph.t === "work" ? frac : 0)) / run.exCount : 0)).toFixed(1) + "%";
+
+    var left = run.total - run.done - (ph.dur - remainMs / 1000);
+    $("totalLeft").textContent = fmt(left);
+    $("totalFill").style.width = (100 * (1 - Math.max(0, left) / run.total)).toFixed(1) + "%";
+  }
+
+  function finish(){
+    if (ticker){ clearInterval(ticker); ticker = null; }
+    run.paused = true;
+    $("run").dataset.phase = "done";
+    $("phaseTag").textContent = "Fertig";
+    $("position").textContent = fmt(run.total) + " Trainingszeit";
+    $("time").textContent = "00:00";
+    $("time").classList.remove("urgent");
+    $("dialSub").textContent = S.sets + (S.sets === 1 ? " Satz" : " Sätze") + " komplett";
+    $("nowTitle").textContent = "Geschafft";
+    $("nextUp").textContent = "";
+    $("ring").style.strokeDashoffset = "0";
+    $("totalFill").style.width = "100%";
+    $("setFill").style.width = "100%";
+    $("pauseBtn").textContent = "Nochmal";
+    $("skipBtn").disabled = true;
+    chord([660, 880, 1320], 0.22, 150);
+    say("Fertig. Gut gemacht.");
+    dropAwake();
+  }
+
+  /* ---------- Bedienung ---------- */
+
+  $("startBtn").addEventListener("click", startRun);
+  $("stopBtn").addEventListener("click", stopRun);
+  $("skipBtn").addEventListener("click", function(){
+    if (!run || run.i >= run.phases.length) return;
+    if (run.paused){ run.paused = false; $("pauseBtn").textContent = "Pause"; }
+    nextPhase();
+  });
+  $("pauseBtn").addEventListener("click", function(){
+    if (!run) return;
+    if (run.i >= run.phases.length){ startRun(); return; }
+    if (run.paused){
+      run.paused = false;
+      run.endAt = Date.now() + run.rest;
+      $("pauseBtn").textContent = "Pause";
+      keepAwake();
+      initAudio();
+    } else {
+      run.paused = true;
+      run.rest = Math.max(0, run.endAt - Date.now());
+      $("pauseBtn").textContent = "Weiter";
+      try{ window.speechSynthesis.cancel(); }catch(e){}
+      dropAwake();
+    }
+  });
+  document.addEventListener("keydown", function(e){
+    if ($("run").hidden) return;
+    if (e.code === "Space"){ e.preventDefault(); $("pauseBtn").click(); }
+    if (e.code === "ArrowRight"){ e.preventDefault(); $("skipBtn").click(); }
+    if (e.code === "Escape"){ e.preventDefault(); stopRun(); }
+  });
+
+  renderNames();
+  syncSteppers();
+  updateSummary();
+
+  /* ---------- Offline-Betrieb ---------- */
+
+  if ("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+})();
+</script>
+</body>
+</html>
